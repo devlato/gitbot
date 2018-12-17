@@ -5,7 +5,7 @@ A small script to generate fake activity. Can be run as a daemon.
 
 ## Dependencies
 
-To run this, you need Node.js (preferrably, 8.12.0 LTS) and npm. To install the dependencies, run the following command:
+To run this, you need Node.js (preferably, 8.12.0 LTS) and npm. To install the dependencies, run the following command:
 
 ```sh
 $ npm i
