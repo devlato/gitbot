@@ -16,6 +16,7 @@ const PROJECT_ROOT = process.env.PROJECT_ROOT || path.resolve(__dirname, './repo
 const ORIGIN_ALIAS = process.env.ORIGIN_ALIAS || 'origin';
 const ORIGIN_BRANCH = process.env.ORIGIN_BRANCH || 'master';
 const ORIGIN_URL = process.env.ORIGIN_ALIAS || 'git@github.com:devlato/fake-activity.git';
+const ORIGIN_DOMAIN = process.env.ORIGIN_DOMAIN || 'github.com';
 const USER_NAME = process.env.USER_NAME || 'devlato';
 const USER_EMAIL = process.env.USER_EMAIL || 'github@devlato.com';
 
@@ -44,6 +45,7 @@ const gitInit = (repoURL) => {
   shell.exec(`git config user.name "${USER_NAME}"`);
   shell.exec(`git config user.email "${USER_EMAIL}"`);
   if (shell.exec('git remote show origin').code !== 0) {
+    shell.exec(`ssh-keyscan ${ORIGIN_DOMAIN} >> ~/.ssh/known_hosts`);
     shell.exec(`git remote add ${originAlias} "${originURL}"`);
   }
   shell.exec('git status');
