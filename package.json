@@ -1,0 +1,28 @@
+{
+  "name": "fake-activity",
+  "version": "1.0.0",
+  "description": "Fake Activity Generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "start": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/devlato/fake-activity-generator.git"
+  },
+  "keywords": [
+    "fake",
+    "activity",
+    "github"
+  ],
+  "author": "devlato <github@devlato.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devlato/fake-activity-generator/issues"
+  },
+  "homepage": "https://github.com/devlato/fake-activity-generator#readme",
+  "dependencies": {
+    "shelljs": "^0.8.3"
+  }
+}
