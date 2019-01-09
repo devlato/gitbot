@@ -7,6 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "start": "node ./index.js",
     "daemon": "pm2 start",
+    "stop": "pm2 stop all && pm2 delete all",
+    "restart": "pm2 restart all",
     "logs": "pm2 logs"
   },
   "repository": {
