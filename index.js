@@ -142,8 +142,8 @@ const generateOnSpareTime = () => {
     maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
   }
   
+  console.log(`Generating waiting interval with [min; max) = (${minInterval}; ${maxInterval})`);
   return getRandomUInt(minInterval, maxInterval);
-  // return 30000;
 };
 
 const commitListener = (interval) => {
