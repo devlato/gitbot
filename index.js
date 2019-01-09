@@ -114,14 +114,13 @@ const scheduleRepetitiveInterval = (fn, intervalStrategy, listener) => {
 
   const interval = intervalStrategy();
   const renderTimer = () => {
+    listener(interval);
     timer = setTimeout(() => {
       clearTimeout(timer);
       fn();
       renderTimer();
     }, interval);
   };
-
-  listener(interval);
 
   return () => renderTimer();
 };
