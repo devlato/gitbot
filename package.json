@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0",
-    "start": "node ./index.js"
+    "start": "node ./index.js",
+    "daemon": "pm2 start",
+    "logs": "pm2 logs"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,7 @@
   },
   "homepage": "https://github.com/devlato/fake-activity-generator#readme",
   "dependencies": {
+    "pm2": "^3.2.4",
     "shelljs": "^0.8.3"
   }
 }
