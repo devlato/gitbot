@@ -27,6 +27,8 @@ const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '19') % HOURS_IN_DAY;
 const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR - TIMEZONE_OFFSET;
 const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR - TIMEZONE_OFFSET;
 
+const getRandomUInt = (start = 0, end = Infinity) => Math.floor(Math.random() * (end - start) + start);
+
 const getRandomString = (length = 255) => {
   const result = [];
 
@@ -37,16 +39,16 @@ const getRandomString = (length = 255) => {
   return result.join('');
 };
 
-const gitInit = (repoURL) => {
-  console.log(`(Re)initializing repo (${repoURL}) in "${PROJECT_ROOT}"...`);
+const gitInit = () => {
+  console.log(`(Re)initializing repo (${ORIGIN_URL}) in "${PROJECT_ROOT}"...`);
   shell.mkdir('-p', PROJECT_ROOT);
   shell.cd(PROJECT_ROOT);
   shell.exec('git init');
   shell.exec(`git config user.name "${USER_NAME}"`);
   shell.exec(`git config user.email "${USER_EMAIL}"`);
-  if (shell.exec('git remote show origin').code !== 0) {
+  if (shell.exec(`git remote show ${ORIGIN_ALIAS}`).code !== 0) {
     shell.exec(`ssh-keyscan ${ORIGIN_DOMAIN} >> ~/.ssh/known_hosts`);
-    shell.exec(`git remote add ${originAlias} "${originURL}"`);
+    shell.exec(`git remote add ${ORIGIN_ALIAS} "${ORIGIN_URL}"`);
   }
   shell.exec('git status');
 };
@@ -110,4 +112,8 @@ const run = () => {
   scheduleCommits();
   schedulePushes();
 };
+
+if (require.main === module) {
+  run();
+}
 
