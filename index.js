@@ -58,8 +58,8 @@ MIN_COMMIT_INTERVAL_IN_MS = ${MIN_COMMIT_INTERVAL_IN_MS}ms
 MORNING_HOUR = ${MORNING_HOUR}
 EVENING_HOUR = ${EVENING_HOUR}
 
-MORNING_IN_MS = ${MORNING_IN_MS}ms (or ${new Date(MORNING_IN_MS)})
-EVENING_IN_MS = ${EVENING_IN_MS}ms (or ${new Date(EVENING_IN_MS)})
+MORNING_IN_MS = ${MORNING_IN_MS}ms (or ${new Date(MORNING_IN_MS).toLocaleString()})
+EVENING_IN_MS = ${EVENING_IN_MS}ms (or ${new Date(EVENING_IN_MS).toLocaleString()})
 `);
 
 const getRandomUInt = (start = 0, end = Infinity) => Math.floor(Math.random() * (end - start) + start);
@@ -142,7 +142,7 @@ const generateOnSpareTime = () => {
     maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
   }
   
-  console.log(`Generating waiting interval with [min; max) = (${minInterval}; ${maxInterval})`);
+  console.log(`Generating waiting interval with [min; max) = (${minInterval}; ${maxInterval}) or (${new Date(minInterval).toLocaleString()}; ${new Date(maxInterval).toLocaleString()})`);
   return getRandomUInt(minInterval, maxInterval);
 };
 
