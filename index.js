@@ -21,12 +21,45 @@ const ORIGIN_DOMAIN = process.env.ORIGIN_DOMAIN || 'github.com';
 const USER_NAME = process.env.USER_NAME || 'devlato';
 const USER_EMAIL = process.env.USER_EMAIL || 'github@devlato.com';
 
+const TIME_ANNOUNCEMENT_INTERVAL_IN_MS = parseInt(process.env.TIME_ANNOUNCEMENT_INTERVAL || `${5 * MINUTE_IN_MS}`);
 const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${10 * MINUTE_IN_MS}`);
 const MORNING_HOUR = parseInt(process.env.MORNING_HOUR || '9') % HOURS_IN_DAY;
 const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '19') % HOURS_IN_DAY;
 
 const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR - TIMEZONE_OFFSET;
 const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR - TIMEZONE_OFFSET;
+
+console.log(`
+SECOND_IN_MS = ${SECOND_IN_MS}ms
+SECONDS_IN_MINUTE = ${SECONDS_IN_MINUTE}
+
+MINUTE_IN_MS = ${MINUTE_IN_MS}ms
+MINUTES_IN_HOUR = ${MINUTES_IN_HOUR}
+
+HOUR_IN_MS = ${HOUR_IN_MS}ms
+HOURS_IN_DAY = ${HOURS_IN_DAY}
+
+DAY_IN_MS = ${DAY_IN_MS}ms
+
+TIMEZONE_OFFSET = ${TIMEZONE_OFFSET}ms (or ${TIMEZONE_OFFSET / MINUTE_IN_MS}min)
+
+PROJECT_ROOT = ${PROJECT_ROOT}
+ORIGIN_ALIAS = ${ORIGIN_ALIAS}
+ORIGIN_BRANCH = ${ORIGIN_BRANCH}
+ORIGIN_URL = ${ORIGIN_URL}
+ORIGIN_DOMAIN = ${ORIGIN_DOMAIN}
+USER_NAME = ${USER_NAME}
+USER_EMAIL = ${USER_EMAIL}
+
+TIME_ANNOUNCEMENT_INTERVAL_IN_MS = ${TIME_ANNOUNCEMENT_INTERVAL_IN_MS}ms
+MIN_COMMIT_INTERVAL_IN_MS = ${MIN_COMMIT_INTERVAL_IN_MS}ms
+
+MORNING_HOUR = ${MORNING_HOUR}
+EVENING_HOUR = ${EVENING_HOUR}
+
+MORNING_IN_MS = ${MORNING_IN_MS}ms (or ${new Date(MORNING_IN_MS)})
+EVENING_IN_MS = ${EVENING_IN_MS}ms (or ${new Date(EVENING_IN_MS)})
+`);
 
 const getRandomUInt = (start = 0, end = Infinity) => Math.floor(Math.random() * (end - start) + start);
 
@@ -75,16 +108,19 @@ const generateRandomFileName = () => path.resolve(PROJECT_ROOT, `./${getRandomSt
 
 const gitCommit = () => generateCommit(generateRandomFileName(), generateRandomCommitData(), generateRandomCommitMessage());
 
-const scheduleRepetitiveInterval = (fn, intervalStrategy) => {
+const scheduleRepetitiveInterval = (fn, intervalStrategy, listener) => {
   let timer = null;
 
+  const interval = intervalStrategy();
   const renderTimer = () => {
     timer = setTimeout(() => {
       clearTimeout(timer);
       fn();
       renderTimer();
-    }, intervalStrategy());
+    }, interval);
   };
+
+  listener(interval);
 
   return () => renderTimer();
 };
@@ -105,14 +141,33 @@ const generateOnSpareTime = () => {
   // return 30000;
 };
 
-const scheduleCommits = scheduleRepetitiveInterval(gitCommit, generateOnSpareTime);
-const schedulePushes = scheduleRepetitiveInterval(gitPush, generateOnSpareTime);
+const commitListener = (interval) => {
+  console.log(`Next commit is going to be done at ${new Date(Date.now() + interval).toLocaleString()}`);
+};
+
+const pushListener = (interval) => {
+  console.log(`Next push is going to be done at ${new Date(Date.now() + interval).toLocaleString()}`);
+};
+
+const scheduleCommits = scheduleRepetitiveInterval(gitCommit, generateOnSpareTime, commitListener);
+const schedulePushes = scheduleRepetitiveInterval(gitPush, generateOnSpareTime, pushListener);
+
+const announceTime = () => {
+  console.log(`Current time is ${new Date().toLocaleString()}`);
+};
+
+const scheduleTimeAnnouncements = () => {
+  setInterval(announceTime, TIME_ANNOUNCEMENT_INTERVAL_IN_MS);
+
+  announceTime();
+};
 
 const run = () => {
   gitInit();
 
-  scheduleCommits();
+  scheduleTimeAnnouncements();
   schedulePushes();
+  scheduleCommits();
 };
 
 if (require.main === module) {
