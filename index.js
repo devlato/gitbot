@@ -2,6 +2,7 @@
 
 const shell = require('shelljs');
 const path = require('path');
+const fs = require('fs');
 
 const SECOND_IN_MS = 1000;
 const SECONDS_IN_MINUTE = 60;
@@ -62,8 +63,8 @@ const generateCommit = (fileName, data, commitMessage) => {
 };
 
 const gitPush = () => {
-  console.log(`Pushing changes to the remote repo (${originAlias}/${originBranch})...`);
-  shell.exec(`git push ${originAlias} ${originBranch}`);
+  console.log(`Pushing changes to the remote repo (${ORIGIN_ALIAS}/${ORIGIN_BRANCH})...`);
+  shell.exec(`git push ${ORIGIN_ALIAS} ${ORIGIN_BRANCH}`);
 };
 
 const generateRandomCommitData = () => getRandomString();
@@ -101,6 +102,7 @@ const generateOnSpareTime = () => {
   }
   
   return getRandomUInt(minInterval, maxInterval);
+  // return 30000;
 };
 
 const scheduleCommits = scheduleRepetitiveInterval(gitCommit, generateOnSpareTime);
