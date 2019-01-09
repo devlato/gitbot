@@ -23,6 +23,7 @@ const USER_EMAIL = process.env.USER_EMAIL || 'github@devlato.com';
 
 const TIME_ANNOUNCEMENT_INTERVAL_IN_MS = parseInt(process.env.TIME_ANNOUNCEMENT_INTERVAL || `${5 * MINUTE_IN_MS}`);
 const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${10 * MINUTE_IN_MS}`);
+const MAX_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MAX_COMMIT_INTERVAL || `${4 * HOUR_IN_MS}`);
 const MORNING_HOUR = parseInt(process.env.MORNING_HOUR || '9') % HOURS_IN_DAY;
 const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '19') % HOURS_IN_DAY;
 
@@ -135,6 +136,10 @@ const generateOnSpareTime = () => {
   } else if (msSinceBeginningOfTheDay > EVENING_IN_MS) {
     minInterval = MIN_COMMIT_INTERVAL_IN_MS;
     maxInterval = (DAY_IN_MS - msSinceBeginningOfTheDay) + MORNING_IN_MS;
+  }
+
+  if (maxInterval > MAX_COMMIT_INTERVAL_IN_MS) {
+    maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
   }
   
   return getRandomUInt(minInterval, maxInterval);
