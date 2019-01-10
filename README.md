@@ -32,10 +32,10 @@ $ ORIGIN_URL=git@github.com:devlato/fake-activity.git USER_NAME=devlato USER_EMA
 
 ### Running with a supervisor
 
-This project has a dependency of [PM2](http://pm2.keymetrics.io/) in case you want to run it with PM2. To run the script with PM2, firstly, please rename `ecosystem.config.template.js` to `ecosystem.config.js`:
+This project has a dependency of [PM2](http://pm2.keymetrics.io/) in case you want to run it with PM2. To run the script with PM2, firstly, please copy `ecosystem.config.template.js` to `ecosystem.config.js`:
 
 ```sh
-$ mv ecosystem.config.template.js ecosystem.config.js
+$ cp ecosystem.config.template.js ecosystem.config.js
 ```
 
 Then edit it and specify the required environment variables there. If it looks unclear for you, please check the PM2 [documentation](http://pm2.keymetrics.io/docs/usage/environment/) for details.
