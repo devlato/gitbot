@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 
+/**
+ * (c) 2019 Denis Tokarev <github@devlato.com>i
+ * 
+ * This code is available the MIT license with providing a link to this repository
+ */
+
 const shell = require('shelljs');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const SECOND_IN_MS = 1000;
 const SECONDS_IN_MINUTE = 60;
@@ -11,56 +18,95 @@ const MINUTES_IN_HOUR = 60;
 const HOUR_IN_MS = MINUTE_IN_MS * MINUTES_IN_HOUR;
 const HOURS_IN_DAY = 24;
 const DAY_IN_MS = HOUR_IN_MS * HOURS_IN_DAY;
-const TIMEZONE_OFFSET = new Date().getTimezoneOffset() * MINUTE_IN_MS;
 
 const PROJECT_ROOT = process.env.PROJECT_ROOT || path.resolve(__dirname, './repo');
 const ORIGIN_ALIAS = process.env.ORIGIN_ALIAS || 'origin';
 const ORIGIN_BRANCH = process.env.ORIGIN_BRANCH || 'master';
-const ORIGIN_URL = process.env.ORIGIN_URL || 'git@github.com:devlato/fake-activity.git';
+const ORIGIN_URL = process.env.ORIGIN_URL;
 const ORIGIN_DOMAIN = process.env.ORIGIN_DOMAIN || 'github.com';
-const USER_NAME = process.env.USER_NAME || 'devlato';
-const USER_EMAIL = process.env.USER_EMAIL || 'github@devlato.com';
+const USER_NAME = process.env.USER_NAME;
+const USER_EMAIL = process.env.USER_EMAIL;
 
+const TIMEZONE_OFFSET_IN_MS = parseInt(process.env.TIMEZONE_OFFSET || `${new Date().getTimezoneOffset() * MINUTE_IN_MS}`);
 const TIME_ANNOUNCEMENT_INTERVAL_IN_MS = parseInt(process.env.TIME_ANNOUNCEMENT_INTERVAL || `${5 * MINUTE_IN_MS}`);
 const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${10 * MINUTE_IN_MS}`);
 const MAX_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MAX_COMMIT_INTERVAL || `${4 * HOUR_IN_MS}`);
 const MORNING_HOUR = parseInt(process.env.MORNING_HOUR || '9') % HOURS_IN_DAY;
 const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '19') % HOURS_IN_DAY;
 
-const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR - TIMEZONE_OFFSET;
-const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR - TIMEZONE_OFFSET;
+const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR;
+const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR;
 
-console.log(`
-SECOND_IN_MS = ${SECOND_IN_MS}ms
-SECONDS_IN_MINUTE = ${SECONDS_IN_MINUTE}
+const ERROR_CODE_UNKNOWN = 1;
+const ERROR_CODE_INVALID_PARAMETERS = 2;
 
-MINUTE_IN_MS = ${MINUTE_IN_MS}ms
-MINUTES_IN_HOUR = ${MINUTES_IN_HOUR}
+const getDateWithTZ = (date = new Date()) => new Date((date && +date || 0) + TIMEZONE_OFFSET_IN_MS);
+const getLocalDate = (date = new Date()) => getDateWithTZ(date).toLocaleString();
+const getLocalTime = (date = new Date()) => getLocalDate(date).replace(/[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}\s+/gi, '');
+const getDate = (date = new Date()) => new Date(date && +date || 0).toLocaleString();
+const getTime = (date = new Date()) => getDate(date).replace(/[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}\s+/gi, '');
 
-HOUR_IN_MS = ${HOUR_IN_MS}ms
-HOURS_IN_DAY = ${HOURS_IN_DAY}
+const log = (type, level = 'log') => (...args) => console[level](args.map((arg) => `[${type}][${getLocalDate()} local / ${getDate()} server] ${arg}`).join(os.EOL));
+const logSettings = log('settings');
+const logGit = log('git');
+const logCommit = log('git commit');
+const logPush = log('git push');
+const logError = log('error', 'error');
+const logInit = log('init');
 
-DAY_IN_MS = ${DAY_IN_MS}ms
+const exit = (...messages) => (code = ERROR_CODE_UNKNOWN) => {
+  logError(...messages);
+  process.exit(code);
 
-TIMEZONE_OFFSET = ${TIMEZONE_OFFSET}ms (or ${TIMEZONE_OFFSET / MINUTE_IN_MS}min)
+  return;
+};
 
-PROJECT_ROOT = ${PROJECT_ROOT}
-ORIGIN_ALIAS = ${ORIGIN_ALIAS}
-ORIGIN_BRANCH = ${ORIGIN_BRANCH}
-ORIGIN_URL = ${ORIGIN_URL}
-ORIGIN_DOMAIN = ${ORIGIN_DOMAIN}
-USER_NAME = ${USER_NAME}
-USER_EMAIL = ${USER_EMAIL}
+const validate = () => {
+  logInit('Validating parameters');
 
-TIME_ANNOUNCEMENT_INTERVAL_IN_MS = ${TIME_ANNOUNCEMENT_INTERVAL_IN_MS}ms
-MIN_COMMIT_INTERVAL_IN_MS = ${MIN_COMMIT_INTERVAL_IN_MS}ms
+  const errors = [];
 
-MORNING_HOUR = ${MORNING_HOUR}
-EVENING_HOUR = ${EVENING_HOUR}
+  if (!ORIGIN_URL) {
+    errors.push('ORIGIN_URL - SSH URL of the private repo to push all the fake commits');
+  }
 
-MORNING_IN_MS = ${MORNING_IN_MS}ms (or ${new Date(MORNING_IN_MS).toLocaleString()})
-EVENING_IN_MS = ${EVENING_IN_MS}ms (or ${new Date(EVENING_IN_MS).toLocaleString()})
-`);
+  if (!USER_NAME) {
+    errors.push('USER_NAME  - git user name');
+  }
+
+  if (!USER_EMAIL) {
+    errors.push('USER_EMAIL - git user email');
+  }
+
+  if (errors.length > 0) {
+    exit('Error: please specify the environment variables listed below', ...errors)(ERROR_CODE_INVALID_PARAMETERS);
+  }
+};
+
+const printSettings = () => logSettings(...[
+  `SECOND_IN_MS = ${SECOND_IN_MS} ms`,
+  `SECONDS_IN_MINUTE = ${SECONDS_IN_MINUTE} s`,
+  `MINUTE_IN_MS = ${MINUTE_IN_MS} ms`,
+  `MINUTES_IN_HOUR = ${MINUTES_IN_HOUR} min`,
+  `HOUR_IN_MS = ${HOUR_IN_MS} ms`,
+  `HOURS_IN_DAY = ${HOURS_IN_DAY} h`,
+  `DAY_IN_MS = ${DAY_IN_MS} ms`,
+  `PROJECT_ROOT = ${PROJECT_ROOT}`,
+  `ORIGIN_ALIAS = ${ORIGIN_ALIAS}`,
+  `ORIGIN_BRANCH = ${ORIGIN_BRANCH}`,
+  `ORIGIN_URL = ${ORIGIN_URL}`,
+  `ORIGIN_DOMAIN = ${ORIGIN_DOMAIN}`,
+  `USER_NAME = ${USER_NAME}`,
+  `USER_EMAIL = ${USER_EMAIL}`,
+  `TIMEZONE_OFFSET_IN_MS = ${TIMEZONE_OFFSET_IN_MS} ms (${getTime(TIMEZONE_OFFSET_IN_MS)})`,
+  `TIME_ANNOUNCEMENT_INTERVAL_IN_MS = ${TIME_ANNOUNCEMENT_INTERVAL_IN_MS} ms (${getTime(TIME_ANNOUNCEMENT_INTERVAL_IN_MS)})`,
+  `MIN_COMMIT_INTERVAL_IN_MS = ${MIN_COMMIT_INTERVAL_IN_MS} ms (${getTime(MIN_COMMIT_INTERVAL_IN_MS)})`,
+  `MAX_COMMIT_INTERVAL_IN_MS = ${MAX_COMMIT_INTERVAL_IN_MS} ms (${getTime(MAX_COMMIT_INTERVAL_IN_MS)})`,
+  `MORNING_HOUR = ${MORNING_HOUR}`,
+  `EVENING_HOUR = ${EVENING_HOUR}`,
+  `MORNING_IN_MS = ${MORNING_IN_MS} ms (${getTime(MORNING_IN_MS)}, ${getTime(MORNING_IN_MS - TIMEZONE_OFFSET_IN_MS)} server time)`,
+  `EVENING_IN_MS = ${EVENING_IN_MS} ms (${getTime(EVENING_IN_MS)}, ${getTime(EVENING_IN_MS - TIMEZONE_OFFSET_IN_MS)} server time)`,
+]);
 
 const getRandomUInt = (start = 0, end = Infinity) => Math.floor(Math.random() * (end - start) + start);
 
@@ -75,7 +121,7 @@ const getRandomString = (length = 255) => {
 };
 
 const gitInit = () => {
-  console.log(`(Re)initializing repo (${ORIGIN_URL}) in "${PROJECT_ROOT}"...`);
+  logGit(`(Re)initializing repo (${ORIGIN_URL}) in "${PROJECT_ROOT}"...`);
   shell.mkdir('-p', PROJECT_ROOT);
   shell.cd(PROJECT_ROOT);
   shell.exec('git init');
@@ -89,7 +135,7 @@ const gitInit = () => {
 };
 
 const generateCommit = (fileName, data, commitMessage) => {
-  console.log(`Generating commit in "${fileName}" with data "${data}" and message "${commitMessage}"...`);
+  logCommit(`[commit] Generating commit in "${fileName}" with data "${data}" and message "${commitMessage}"...`);
   shell.cd(PROJECT_ROOT);
   fs.writeFileSync(fileName, data);
   shell.exec('git add .');
@@ -97,7 +143,7 @@ const generateCommit = (fileName, data, commitMessage) => {
 };
 
 const gitPush = () => {
-  console.log(`Pushing changes to the remote repo (${ORIGIN_ALIAS}/${ORIGIN_BRANCH})...`);
+  logPush(`Pushing changes to the remote repo (${ORIGIN_ALIAS}/${ORIGIN_BRANCH})...`);
   shell.exec(`git push ${ORIGIN_ALIAS} ${ORIGIN_BRANCH}`);
 };
 
@@ -109,15 +155,18 @@ const generateRandomFileName = () => path.resolve(PROJECT_ROOT, `./${getRandomSt
 
 const gitCommit = () => generateCommit(generateRandomFileName(), generateRandomCommitData(), generateRandomCommitMessage());
 
-const scheduleRepetitiveInterval = (fn, intervalStrategy, listener) => {
-  let timer = null;
-
-  const interval = intervalStrategy();
+const scheduleRepetitiveInterval = (logger, fn, intervalStrategy) => {
   const renderTimer = () => {
-    listener(interval);
-    timer = setTimeout(() => {
+    const interval = intervalStrategy(logger);
+    const executionTime = Date.now() + interval;
+
+    logger(`Next event is scheduled for ${getLocalDate(executionTime)} (${getDate(executionTime)} server time)`);
+
+    const timer = setTimeout(() => {
       clearTimeout(timer);
+      logger(`Executing command...`);
       fn();
+      logger(`Command completed`);
       renderTimer();
     }, interval);
   };
@@ -125,39 +174,41 @@ const scheduleRepetitiveInterval = (fn, intervalStrategy, listener) => {
   return () => renderTimer();
 };
 
-const generateOnSpareTime = () => {
-  const msSinceBeginningOfTheDay = Date.now() % DAY_IN_MS;
+const generateOnSpareTime = (logger) => {
+  const msSinceBeginningOfTheDay = (Date.now() + TIMEZONE_OFFSET_IN_MS) % DAY_IN_MS;
+
   let minInterval = EVENING_IN_MS - msSinceBeginningOfTheDay;
   let maxInterval = (DAY_IN_MS - msSinceBeginningOfTheDay) + MORNING_IN_MS;
+
   if (msSinceBeginningOfTheDay < MORNING_IN_MS) {
     minInterval = MIN_COMMIT_INTERVAL_IN_MS;
     maxInterval = MORNING_IN_MS - msSinceBeginningOfTheDay;
+
+    if (maxInterval > MAX_COMMIT_INTERVAL_IN_MS) {
+      maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
+    }
   } else if (msSinceBeginningOfTheDay > EVENING_IN_MS) {
     minInterval = MIN_COMMIT_INTERVAL_IN_MS;
     maxInterval = (DAY_IN_MS - msSinceBeginningOfTheDay) + MORNING_IN_MS;
+
+    if (maxInterval > MAX_COMMIT_INTERVAL_IN_MS) {
+      maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
+    }
   }
 
-  if (maxInterval > MAX_COMMIT_INTERVAL_IN_MS) {
-    maxInterval = MAX_COMMIT_INTERVAL_IN_MS;
-  }
-  
-  console.log(`Generating waiting interval with [min; max) = (${minInterval}; ${maxInterval}) or (${new Date(minInterval).toLocaleString()}; ${new Date(maxInterval).toLocaleString()})`);
-  return getRandomUInt(minInterval, maxInterval);
+  const interval = getRandomUInt(minInterval, maxInterval);
+
+  logger(`Generated waiting interval ${interval} ms (${getTime(interval)}) within range of [${minInterval} ms; ${maxInterval} ms / [${getTime(minInterval)}; ${getTime(maxInterval)})`);
+
+  return interval;
 };
 
-const commitListener = (interval) => {
-  console.log(`Next commit is going to be done at ${new Date(Date.now() + interval).toLocaleString()}`);
-};
-
-const pushListener = (interval) => {
-  console.log(`Next push is going to be done at ${new Date(Date.now() + interval).toLocaleString()}`);
-};
-
-const scheduleCommits = scheduleRepetitiveInterval(gitCommit, generateOnSpareTime, commitListener);
-const schedulePushes = scheduleRepetitiveInterval(gitPush, generateOnSpareTime, pushListener);
+const scheduleCommits = scheduleRepetitiveInterval(logCommit, gitCommit, generateOnSpareTime);
+const schedulePushes = scheduleRepetitiveInterval(logPush, gitPush, generateOnSpareTime);
 
 const announceTime = () => {
-  console.log(`Current time is ${new Date().toLocaleString()}`);
+  logSettings('Announcing the current time according to the schedule...');
+  printSettings();
 };
 
 const scheduleTimeAnnouncements = () => {
@@ -167,9 +218,11 @@ const scheduleTimeAnnouncements = () => {
 };
 
 const run = () => {
-  gitInit();
+  validate();
 
   scheduleTimeAnnouncements();
+
+  gitInit();
   schedulePushes();
   scheduleCommits();
 };
