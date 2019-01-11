@@ -93,5 +93,6 @@ Feel free to report any issues and to send PRs.
 ## License
 
 (c) 2019 devlato <github@devlato.com> 
+
 This code is available the MIT license and free to distribute if [the link to this repository](https://github.com/devlato/fake-activity-generator) is provided.
 
