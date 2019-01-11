@@ -1,4 +1,6 @@
 node_modules
 repo
 ecosystem.config.js
+gitbot
+index.bundle.js
 

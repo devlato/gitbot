@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * (c) 2019 Denis Tokarev <github@devlato.com>i
  * 
@@ -20,6 +18,7 @@ const HOURS_IN_DAY = 24;
 const DAY_IN_MS = HOUR_IN_MS * HOURS_IN_DAY;
 
 const PROJECT_ROOT = process.env.PROJECT_ROOT || path.resolve(__dirname, './repo');
+const GIT_EXECUTABLE_PATH = process.env.GIT_EXECUTABLE_PATH || 'git';
 const ORIGIN_ALIAS = process.env.ORIGIN_ALIAS || 'origin';
 const ORIGIN_BRANCH = process.env.ORIGIN_BRANCH || 'master';
 const ORIGIN_URL = process.env.ORIGIN_URL;
@@ -32,11 +31,12 @@ const TIME_ANNOUNCEMENT_INTERVAL_IN_MS = parseInt(process.env.TIME_ANNOUNCEMENT_
 const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${10 * MINUTE_IN_MS}`);
 const MAX_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MAX_COMMIT_INTERVAL || `${4 * HOUR_IN_MS}`);
 const MORNING_HOUR = parseInt(process.env.MORNING_HOUR || '9') % HOURS_IN_DAY;
-const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '19') % HOURS_IN_DAY;
+const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '18') % HOURS_IN_DAY;
 
 const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR;
 const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR;
 
+const ERROR_CODE_NO_ERROR = 0;
 const ERROR_CODE_UNKNOWN = 1;
 const ERROR_CODE_INVALID_PARAMETERS = 2;
 
@@ -53,9 +53,10 @@ const logCommit = log('git commit');
 const logPush = log('git push');
 const logError = log('error', 'error');
 const logInit = log('init');
+const logHelp = log('help');
 
-const exit = (...messages) => (code = ERROR_CODE_UNKNOWN) => {
-  logError(...messages);
+const exit = (...messages) => ({ code = ERROR_CODE_NO_ERROR, logger = logError } = {}) => {
+  logger(...messages);
   process.exit(code);
 
   return;
@@ -79,7 +80,7 @@ const validate = () => {
   }
 
   if (errors.length > 0) {
-    exit('Error: please specify the environment variables listed below', ...errors)(ERROR_CODE_INVALID_PARAMETERS);
+    exit('Error: please specify the environment variables listed below', ...errors)({ code: ERROR_CODE_INVALID_PARAMETERS });
   }
 };
 
@@ -92,6 +93,7 @@ const printSettings = () => logSettings(...[
   `HOURS_IN_DAY = ${HOURS_IN_DAY} h`,
   `DAY_IN_MS = ${DAY_IN_MS} ms`,
   `PROJECT_ROOT = ${PROJECT_ROOT}`,
+  `GIT_EXECUTABLE_PATH = ${GIT_EXECUTABLE_PATH}`,
   `ORIGIN_ALIAS = ${ORIGIN_ALIAS}`,
   `ORIGIN_BRANCH = ${ORIGIN_BRANCH}`,
   `ORIGIN_URL = ${ORIGIN_URL}`,
@@ -120,31 +122,37 @@ const getRandomString = (length = 255) => {
   return result.join('');
 };
 
+const createRepoDir = () => shell.mkdir('-p', PROJECT_ROOT);
+const openRepoDir = () => shell.cd(PROJECT_ROOT);
+const gitCommand = (command) => shell.exec(`${GIT_EXECUTABLE_PATH} ${command}`);
+const getDomainSSHKeys = () => shell.exec(`ssh-keyscan ${ORIGIN_DOMAIN} >> ~/.ssh/known_hosts`);
+
 const gitInit = () => {
   logGit(`(Re)initializing repo (${ORIGIN_URL}) in "${PROJECT_ROOT}"...`);
-  shell.mkdir('-p', PROJECT_ROOT);
-  shell.cd(PROJECT_ROOT);
-  shell.exec('git init');
-  shell.exec(`git config user.name "${USER_NAME}"`);
-  shell.exec(`git config user.email "${USER_EMAIL}"`);
-  if (shell.exec(`git remote show ${ORIGIN_ALIAS}`).code !== 0) {
-    shell.exec(`ssh-keyscan ${ORIGIN_DOMAIN} >> ~/.ssh/known_hosts`);
-    shell.exec(`git remote add ${ORIGIN_ALIAS} "${ORIGIN_URL}"`);
+  createRepoDir();
+  openRepoDir();
+  gitCommand('init');
+  gitCommand(`config user.name "${USER_NAME}"`);
+  gitCommand(`config user.email "${USER_EMAIL}"`);
+  if (gitCommand(`remote show ${ORIGIN_ALIAS}`).code !== 0) {
+    getDomainSSHKeys();
+    gitCommand(`remote add ${ORIGIN_ALIAS} "${ORIGIN_URL}"`);
   }
-  shell.exec('git status');
+  gitCommand('status');
 };
 
 const generateCommit = (fileName, data, commitMessage) => {
-  logCommit(`[commit] Generating commit in "${fileName}" with data "${data}" and message "${commitMessage}"...`);
-  shell.cd(PROJECT_ROOT);
+  logCommit(`Generating commit in "${fileName}" with data "${data}" and message "${commitMessage}"...`);
+  openRepoDir();
   fs.writeFileSync(fileName, data);
-  shell.exec('git add .');
-  shell.exec(`git commit -am "${commitMessage}"`);
+  gitCommand('add .');
+  gitCommand(`commit -am "${commitMessage}"`);
 };
 
 const gitPush = () => {
   logPush(`Pushing changes to the remote repo (${ORIGIN_ALIAS}/${ORIGIN_BRANCH})...`);
-  shell.exec(`git push ${ORIGIN_ALIAS} ${ORIGIN_BRANCH}`);
+  openRepoDir();
+  gitCommand(`push ${ORIGIN_ALIAS} ${ORIGIN_BRANCH}`);
 };
 
 const generateRandomCommitData = () => getRandomString();
@@ -227,7 +235,47 @@ const run = () => {
   scheduleCommits();
 };
 
-if (require.main === module) {
+const printHelp = () => exit(...[
+  'This app supports the following environment variables',
+  'Required variables',
+  '  * ORIGIN_URL                 - SSH URL of the private repo to push all the fake commits',
+  '                                 (string, required)',
+  '  * USER_NAME                  - git user name',
+  '                                 (string, required)',
+  '  * USER_EMAIL                 - git user email',
+  '                                 (string, required)',
+  'Optional variables',
+  '  * GIT_EXECUTABLE_PATH        - git executable binary full path',
+  '                                 (string, default: git)',
+  '  * TIMEZONE_OFFSET            - Desired timezone offset in milliseconds',
+  '                                 (integer, default: the current timezone offset)',
+  '  * PROJECT_ROOT               - Where to store the repo data',
+  '                                 (string, default: ./repo)',
+  '  * ORIGIN_ALIAS               - Alias of the repo to be used with git',
+  '                                 (string, default: origin)',
+  '  * ORIGIN_BRANCH              - Branch name',
+  '                                 (string, default: master)',
+  '  * ORIGIN_DOMAIN              - Domain of the remote git repository',
+  '                                 (string, default: githib.com)',
+  '  * TIME_ANNOUNCEMENT_INTERVAL - Interval in milliseconds used to display the current status',
+  '                                 (integer, default: 300000)',
+  '  * MIN_COMMIT_INTERVAL        - Minimal interval between commits in milliseconds',
+  '                                 (integer, default: 600000)',
+  '  * MAX_COMMIT_INTERVAL        - Maximal interval between commits in milliseconds',
+  '                                 (integer, default: 14400000)',
+  '  * MORNING_HOUR               - What hour does your morning usually start?',
+  '                                 (integer, default: 9)',
+  '  * EVENING_HOUR               - What hour does your evening usually start?',
+  '                                 (integer, default: 18)',
+])({ logger: logHelp });
+
+const main = () => {
+  if (process.argv[2] === 'help') {
+    printHelp();
+  }
+
   run();
-}
+};
+
+main();
 

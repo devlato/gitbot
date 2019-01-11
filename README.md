@@ -30,6 +30,26 @@ For example, for the current repo we might have something like that:
 $ ORIGIN_URL=git@github.com:devlato/fake-activity.git USER_NAME=devlato USER_EMAIL=github@devlato.com TIMEZONE_OFFSET=3600000 npm start
 ```
 
+This command actually translates into the script call:
+
+```sh
+$ ORIGIN_URL=git@github.com:devlato/fake-activity.git USER_NAME=devlato USER_EMAIL=github@devlato.com TIMEZONE_OFFSET=3600000 node ./index.js
+```
+
+For the full list of supported commands, please consider reading the `package.json` file, the section called `scripts`.
+
+However, script supports other environment variables as well, not limited to the ones listed above. To get the full list of supported environment variables, use the command:
+
+```sh
+$ npm run help
+```
+
+Or just point the script directly:
+
+```sh
+$ node ./index.js help
+```
+
 ### Running with a supervisor
 
 This project has a dependency of [PM2](http://pm2.keymetrics.io/) in case you want to run it with PM2. To run the script with PM2, firstly, please copy `ecosystem.config.template.js` to `ecosystem.config.js`:

@@ -6,11 +6,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0",
     "start": "NODE_ENV=production node ./index.js",
+    "help": "NODE_ENV=production node ./index.js help",
     "daemon": "NODE_ENV=production pm2 start",
     "stop": "pm2 stop all && pm2 delete all",
     "restart": "pm2 restart all",
     "logs": "pm2 logs",
-    "ps": "pm2 ps"
+    "ps": "pm2 ps",
+    "build": "rollup index.js --file index.bundle.js --format iife",
+    "compile": "nexe -t $(cat .nvmrc) -i ./index.js -o ./gitbot",
+    "assemble": "npm run clean && npm run build && npm run compile",
+    "clean": "rimraf index.bundle.js gitbot *.log",
+    "reset": "npm run clean && rimraf ecosystem.config.js"
   },
   "repository": {
     "type": "git",
@@ -30,5 +36,9 @@
   "dependencies": {
     "pm2": "^3.2.4",
     "shelljs": "^0.8.3"
+  },
+  "devDependencies": {
+    "nexe": "^2.0.0-rc.34",
+    "rollup": "^1.1.0"
   }
 }
