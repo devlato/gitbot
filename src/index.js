@@ -1,5 +1,5 @@
 /**
- * (c) 2019 Denis Tokarev <github@devlato.com>i
+ * (c) 2019 devlato <github@devlato.com>
  * 
  * This code is available the MIT license with providing a link to this repository
  */
@@ -17,7 +17,11 @@ const HOUR_IN_MS = MINUTE_IN_MS * MINUTES_IN_HOUR;
 const HOURS_IN_DAY = 24;
 const DAY_IN_MS = HOUR_IN_MS * HOURS_IN_DAY;
 
-const PROJECT_ROOT = process.env.PROJECT_ROOT || path.resolve(__dirname, './repo');
+const PROJECT_ROOT = process.env.PROJECT_ROOT 
+  ? path.isAbsolute(process.env.PROJECT_ROOT) 
+    ? process.env.PROJECT_ROOT 
+    : path.resolve(process.cwd(), process.env.PROJECT_ROOT)
+  : path.resolve(process.cwd(), './repo');
 const GIT_EXECUTABLE_PATH = process.env.GIT_EXECUTABLE_PATH || 'git';
 const ORIGIN_ALIAS = process.env.ORIGIN_ALIAS || 'origin';
 const ORIGIN_BRANCH = process.env.ORIGIN_BRANCH || 'master';
@@ -206,7 +210,7 @@ const generateOnSpareTime = (logger) => {
 
   const interval = getRandomUInt(minInterval, maxInterval);
 
-  logger(`Generated waiting interval ${interval} ms (${getTime(interval)}) within range of [${minInterval} ms; ${maxInterval} ms / [${getTime(minInterval)}; ${getTime(maxInterval)})`);
+  logger(`Generated waiting interval ${interval} ms (${getTime(interval)}) within range of [${minInterval} ms; ${maxInterval} ms) / [${getTime(minInterval)}; ${getTime(maxInterval)})`);
 
   return interval;
 };

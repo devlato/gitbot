@@ -7,16 +7,17 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "start": "NODE_ENV=production node ./index.js",
     "help": "NODE_ENV=production node ./index.js help",
-    "daemon": "NODE_ENV=production pm2 start",
+    "daemon": "NODE_ENV=production pm2 start ecosystem.config.js --env production",
     "stop": "pm2 stop all && pm2 delete all",
     "restart": "pm2 restart all",
     "logs": "pm2 logs",
     "ps": "pm2 ps",
-    "build": "rollup index.js --file index.bundle.js --format iife",
-    "compile": "nexe -t $(cat .nvmrc) -i ./index.js -o ./gitbot",
+    "build": "NODE_ENV=production webpack -c webpack.config.js",
+    "compile": "nexe -t $(cat .nvmrc) -i ./build/index.bundle.js -o ./build/gitbot",
     "assemble": "npm run clean && npm run build && npm run compile",
-    "clean": "rimraf index.bundle.js gitbot *.log",
-    "reset": "npm run clean && rimraf ecosystem.config.js"
+    "clean": "rimraf build tsconfig.json *.log",
+    "reset": "npm run clean && rimraf ecosystem.config.js",
+    "bin": "./build/gitbot"
   },
   "repository": {
     "type": "git",
@@ -39,6 +40,8 @@
   },
   "devDependencies": {
     "nexe": "^2.0.0-rc.34",
-    "rollup": "^1.1.0"
+    "rimraf": "^2.6.3",
+    "webpack": "^4.28.4",
+    "webpack-cli": "^3.2.1"
   }
 }
