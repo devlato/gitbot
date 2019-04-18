@@ -17,6 +17,8 @@ const HOUR_IN_MS = MINUTE_IN_MS * MINUTES_IN_HOUR;
 const HOURS_IN_DAY = 24;
 const DAY_IN_MS = HOUR_IN_MS * HOURS_IN_DAY;
 
+const DAYS_OF_WEEK = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((d) => d.toUpperCase());
+
 const PROJECT_ROOT = process.env.PROJECT_ROOT 
   ? path.isAbsolute(process.env.PROJECT_ROOT) 
     ? process.env.PROJECT_ROOT 
@@ -32,10 +34,13 @@ const USER_EMAIL = process.env.USER_EMAIL;
 
 const TIMEZONE_OFFSET_IN_MS = parseInt(process.env.TIMEZONE_OFFSET || `${new Date().getTimezoneOffset() * MINUTE_IN_MS}`);
 const TIME_ANNOUNCEMENT_INTERVAL_IN_MS = parseInt(process.env.TIME_ANNOUNCEMENT_INTERVAL || `${5 * MINUTE_IN_MS}`);
-const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${10 * MINUTE_IN_MS}`);
-const MAX_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MAX_COMMIT_INTERVAL || `${4 * HOUR_IN_MS}`);
+const MIN_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MIN_COMMIT_INTERVAL || `${1.5 * MINUTE_IN_MS}`);
+const MAX_COMMIT_INTERVAL_IN_MS = parseInt(process.env.MAX_COMMIT_INTERVAL || `${8 * HOUR_IN_MS}`);
 const MORNING_HOUR = parseInt(process.env.MORNING_HOUR || '9') % HOURS_IN_DAY;
 const EVENING_HOUR = parseInt(process.env.EVENING_HOUR || '18') % HOURS_IN_DAY;
+const WEEKEND_DAYS = (process.env.WEEKEND_DAYS || 'SAT_SUN').toUpperCase().split('_').filter((d) => DAYS_OF_WEEK.includes(d));
+const WEEKEND_COMMIT_PROBABILITY = parseFloat(process.env.WEEKEND_COMMIT_PROBABILITY || '0.05');
+const WEEKDAY_COMMIT_PROBABILITY = parseFloat(process.env.WEEKDAY_COMMIT_PROBABILITY || '0.75');
 
 const MORNING_IN_MS = HOUR_IN_MS * MORNING_HOUR;
 const EVENING_IN_MS = HOUR_IN_MS * EVENING_HOUR;
@@ -186,11 +191,21 @@ const scheduleRepetitiveInterval = (logger, fn, intervalStrategy) => {
   return () => renderTimer();
 };
 
+const shouldGenerateToday = () => {
+  const day = DAYS_OF_WEEK[new Date().getDay()];
+  if (WEEKEND_DAYS.includes(day)) {
+    return Math.random() < WEEKEND_COMMIT_PROBABILITY;
+  }
+
+  return Math.random() < WEEKDAY_COMMIT_PROBABILITY;
+};
+
 const generateOnSpareTime = (logger) => {
   const msSinceBeginningOfTheDay = (Date.now() + TIMEZONE_OFFSET_IN_MS) % DAY_IN_MS;
 
   let minInterval = EVENING_IN_MS - msSinceBeginningOfTheDay;
   let maxInterval = (DAY_IN_MS - msSinceBeginningOfTheDay) + MORNING_IN_MS;
+  let moveToTheNextDayHackInterval = shouldGenerateToday() ? 0 : maxInterval;
 
   if (msSinceBeginningOfTheDay < MORNING_IN_MS) {
     minInterval = MIN_COMMIT_INTERVAL_IN_MS;
@@ -212,7 +227,7 @@ const generateOnSpareTime = (logger) => {
 
   logger(`Generated waiting interval ${interval} ms (${getTime(interval)}) within range of [${minInterval} ms; ${maxInterval} ms) / [${getTime(minInterval)}; ${getTime(maxInterval)})`);
 
-  return interval;
+  return interval + moveToTheNextDayHackInterval;
 };
 
 const scheduleCommits = scheduleRepetitiveInterval(logCommit, gitCommit, generateOnSpareTime);
@@ -271,7 +286,23 @@ const printHelp = () => exit(...[
   '                                 (integer, default: 9)',
   '  * EVENING_HOUR               - What hour does your evening usually start?',
   '                                 (integer, default: 18)',
+  '  * WEEKEND_DAYS               - What is considered a weekend?',
+  '                                 (acceptable values: SUN, MON, TUE, WED, THU, FRI, SAT, default: SAT_SUN)',
+  '  * WEEKEND_COMMIT_PROBABILITY - What is the probability of committing on weekend?',
+  '                                 (float, default: 0.05)',
+  '  * WEEKDAY_COMMIT_PROBABILITY - What is the probability of committing on weekdays?',
+  '                                 (float, default: 0.75)',
 ])({ logger: logHelp });
+
+process.on('uncaughtException', (e) => {
+  console.error(e.stack);
+  process.exit(ERROR_CODE_UNKNOWN);
+});
+
+process.on('unhandledRejection', (e) => {
+  console.error(e.stack);
+  process.exit(ERROR_CODE_UNKNOWN);
+});
 
 const main = () => {
   if (process.argv[2] === 'help') {
@@ -282,4 +313,3 @@ const main = () => {
 };
 
 main();
-
