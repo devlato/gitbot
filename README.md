@@ -94,5 +94,4 @@ Feel free to report any issues and to send PRs.
 
 (c) 2019 devlato https://github.com/devlato
 
-This code is available the MIT license and free to be distributed.
-
+This code is available under the MIT license and is free to be modified or distributed for a non-commercial use.
