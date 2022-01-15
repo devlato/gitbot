@@ -36,7 +36,7 @@
   "homepage": "https://github.com/devlato/fake-activity-generator#readme",
   "dependencies": {
     "pm2": "^3.2.4",
-    "shelljs": "^0.8.3"
+    "shelljs": "^0.8.5"
   },
   "devDependencies": {
     "nexe": "^2.0.0-rc.34",
