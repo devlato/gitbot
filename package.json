@@ -42,6 +42,6 @@
     "nexe": "^2.0.0-rc.34",
     "rimraf": "^2.6.3",
     "webpack": "^4.28.4",
-    "webpack-cli": "^3.2.1"
+    "webpack-cli": "^3.3.12"
   }
 }
